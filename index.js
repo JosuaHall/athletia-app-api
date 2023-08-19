@@ -5,6 +5,7 @@ const users = require("./routes/api/users");
 const auth = require("./routes/api/auth");
 const organizations = require("./routes/api/organizations");
 const cors = require("cors");
+require("dotenv").config();
 
 // Create a new express app
 const app = express();
@@ -22,7 +23,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Connect to your MongoDB database
-const db = config.get("mongoURI");
+const db = process.env.mongoURI; /*config.get("mongoURI")*/
 mongoose
   .set("strictQuery", true)
   .connect(db, { useNewUrlParser: true, useUnifiedTopology: true })
