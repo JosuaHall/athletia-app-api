@@ -315,7 +315,8 @@ router.get("/verify", (req, res) => {
           // Assign and return the JWT token
           jwt.sign(
             { id: updatedUser.id },
-            config.get("jwtSecret"),
+            process.env.jwtSecret,
+            //config.get("jwtSecret"),
             (err, token) => {
               if (err) {
                 return res.status(500).json({ msg: "Internal Server Error" });
@@ -470,7 +471,8 @@ router.post("/forgot/password", async (req, res) => {
       // Create a JWT token with the user's email and an expiration time
       const token = jwt.sign(
         { email: existingUser.email },
-        config.get("jwtSecret"),
+        process.env.jwtSecret,
+        //config.get("jwtSecret"),
         { expiresIn: 1200 } // Set the expiration time as per your requirements
       );
 
@@ -504,7 +506,10 @@ router.get("/validate/password/reset/link", async (req, res) => {
 
   try {
     // Verify the token
-    const decoded = jwt.verify(token, config.get("jwtSecret"));
+    const decoded = jwt.verify(
+      token,
+      process.env.jwtSecret /*config.get("jwtSecret")*/
+    );
 
     // Retrieve the user based on the email from the token
     const user = await User.findOne({ email: decoded.email });
@@ -539,7 +544,10 @@ router.post("/reset/password", async (req, res) => {
 
   try {
     // Verify the token and retrieve the email and expiration time from it
-    const decoded = jwt.verify(passwordResetToken, config.get("jwtSecret"));
+    const decoded = jwt.verify(
+      passwordResetToken,
+      process.env.jwtSecret /*config.get("jwtSecret")*/
+    );
     const userEmail = decoded.email;
     const tokenExpirationTime = decoded.exp;
 

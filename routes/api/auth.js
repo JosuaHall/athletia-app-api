@@ -49,25 +49,29 @@ router.post("/", (req, res) => {
           if (!isMatch)
             return res.status(400).json({ msg: "Invalid password" });
 
-          jwt.sign({ id: user.id }, config.get("jwtSecret"), (err, token) => {
-            if (err) throw err;
-            res.json({
-              token,
-              user: {
-                _id: user.id,
-                name: user.name,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                isPrivate: user.isPrivate,
-                profileImg: user.profileImg,
-                teams_followed: user.teams_followed,
-                organizations_followed: user.organizations_followed,
-                isAdminAccount: user.isAdminAccount,
-                isEmailVerified: user.isEmailVerified,
-              },
-            });
-          });
+          jwt.sign(
+            { id: user.id },
+            process.env.jwtSecret /*config.get("jwtSecret")*/,
+            (err, token) => {
+              if (err) throw err;
+              res.json({
+                token,
+                user: {
+                  _id: user.id,
+                  name: user.name,
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  email: user.email,
+                  isPrivate: user.isPrivate,
+                  profileImg: user.profileImg,
+                  teams_followed: user.teams_followed,
+                  organizations_followed: user.organizations_followed,
+                  isAdminAccount: user.isAdminAccount,
+                  isEmailVerified: user.isEmailVerified,
+                },
+              });
+            }
+          );
         });
       })
       .catch((err) => {
