@@ -1,4 +1,3 @@
 # Exclude sensitive files
-cloudinary/config.js
 config/default.json
 .env
