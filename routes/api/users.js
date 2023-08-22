@@ -209,6 +209,7 @@ router.post("/", async (req, res) => {
         organizations_followed: user.organizations_followed,
         isAdminAccount: user.isAdminAccount,
         isEmailVerified: false,
+        acknowlegement: user.acknowlegement,
       },
     });
   } catch (err) {
@@ -336,6 +337,7 @@ router.get("/verify", (req, res) => {
                   organizations_followed: updatedUser.organizations_followed,
                   isAdminAccount: updatedUser.isAdminAccount,
                   isEmailVerified: updatedUser.isEmailVerified,
+                  acknowlegement: updatedUser.acknowlegement,
                 },
               });
             }
@@ -656,6 +658,23 @@ router.get("/get/filtered/users", (req, res) => {
     });
 });
 
+router.put("/user/:userid/acknowledgement/approved", (req, res) => {
+  let userid = req.params.userid;
+
+  User.findOneAndUpdate(
+    {
+      _id: userid,
+    },
+    { acknowlegement: true }
+  )
+    .then(() => {
+      res.status(200);
+    })
+    .catch((err) => {
+      res.status(400).json(err);
+    });
+});
+
 router.put("/update/privacy/setting/user/:userid", async (req, res) => {
   const userid = req.params.userid;
   const { isPrivate } = req.body;
@@ -694,6 +713,7 @@ router.put("/update/privacy/setting/user/:userid", async (req, res) => {
         organizations_followed: updatedUser.organizations_followed,
         isAdminAccount: updatedUser.isAdminAccount,
         isEmailVerified: updatedUser.isEmailVerified,
+        acknowlegement: updatedUser.acknowlegement,
       },
     });
   } catch (err) {

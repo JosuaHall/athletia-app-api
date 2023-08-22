@@ -13,7 +13,7 @@ const UserSchema = new Schema({
   },
   isPrivate: {
     type: Number,
-    require: true,
+    required: true,
   },
   firstName: {
     type: String,
@@ -38,7 +38,8 @@ const UserSchema = new Schema({
   },
   acknowlegement: {
     type: Boolean,
-    required: false,
+    required: true,
+    default: false,
   },
   nr_teams_followed: {
     type: Number,

@@ -68,6 +68,7 @@ router.post("/", (req, res) => {
                   organizations_followed: user.organizations_followed,
                   isAdminAccount: user.isAdminAccount,
                   isEmailVerified: user.isEmailVerified,
+                  acknowlegement: user.acknowlegement,
                 },
               });
             }
@@ -108,6 +109,7 @@ router.get("/user", auth, (req, res) => {
           organizations_followed: user.organizations_followed,
           isAdminAccount: user.isAdminAccount,
           isEmailVerified: user.isEmailVerified,
+          acknowlegement: user.acknowlegement,
         },
       })
     )
