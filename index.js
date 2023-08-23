@@ -15,13 +15,13 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Enable cross-origin resource sharing
+/* Enable cross-origin resource sharing
 const corsOptions = {
   //origin: "http://10.102.33.6:19000",
   credentials: true, //access-control-allow-credentials:true
   optionSuccessStatus: 200,
 };
-app.use(cors(corsOptions));
+app.use(cors(corsOptions));*/
 
 // Connect to your MongoDB database
 const db = process.env.mongoURI; /*config.get("mongoURI")*/
