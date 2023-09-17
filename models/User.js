@@ -32,6 +32,18 @@ const UserSchema = new Schema({
     required: false,
     default: "",
   },
+  socials: [
+    {
+      app: {
+        type: String,
+        required: false,
+      },
+      username: {
+        type: String,
+        required: false,
+      },
+    },
+  ],
   bio: {
     type: String,
     required: false,

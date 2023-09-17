@@ -9,8 +9,8 @@ async function migrateUsers() {
 
     for (const user of users) {
       // Check if the isPrivate property exists
-      if (!user.hasOwnProperty("acknowlegement")) {
-        user.acknowlegement = false;
+      if (!user.hasOwnProperty("socials")) {
+        user.socials = [];
         await user.save();
       }
     }

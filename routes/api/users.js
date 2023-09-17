@@ -210,6 +210,7 @@ router.post("/", async (req, res) => {
         isAdminAccount: user.isAdminAccount,
         isEmailVerified: false,
         acknowlegement: user.acknowlegement,
+        socials: user.socials,
       },
     });
   } catch (err) {
@@ -338,6 +339,7 @@ router.get("/verify", (req, res) => {
                   isAdminAccount: updatedUser.isAdminAccount,
                   isEmailVerified: updatedUser.isEmailVerified,
                   acknowlegement: updatedUser.acknowlegement,
+                  socials: updatedUser.socials,
                 },
               });
             }
@@ -714,10 +716,37 @@ router.put("/update/privacy/setting/user/:userid", async (req, res) => {
         isAdminAccount: updatedUser.isAdminAccount,
         isEmailVerified: updatedUser.isEmailVerified,
         acknowlegement: updatedUser.acknowlegement,
+        socials: updatedUser.socials,
       },
     });
   } catch (err) {
     res.status(400).json(err);
+  }
+});
+
+router.put("/updateSocials/:userid", async (req, res) => {
+  const userid = req.params.userid; // Extract the userid from the URL parameter
+  const { socials } = req.body; // Extract the updatedSocials data from the request body
+
+  try {
+    // Find the user by userid
+    const user = await User.findById(userid);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update the user's socials field with the provided data
+    user.socials = socials;
+
+    // Save the updated user object
+    await user.save();
+
+    // Return the updated user object as a response
+    res.json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

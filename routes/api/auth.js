@@ -69,6 +69,7 @@ router.post("/", (req, res) => {
                   isAdminAccount: user.isAdminAccount,
                   isEmailVerified: user.isEmailVerified,
                   acknowlegement: user.acknowlegement,
+                  socials: user.socials,
                 },
               });
             }
@@ -110,6 +111,7 @@ router.get("/user", auth, (req, res) => {
           isAdminAccount: user.isAdminAccount,
           isEmailVerified: user.isEmailVerified,
           acknowlegement: user.acknowlegement,
+          socials: user.socials,
         },
       })
     )
