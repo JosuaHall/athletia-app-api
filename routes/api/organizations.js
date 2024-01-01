@@ -13,6 +13,7 @@ const TeamAdminRequest = require("../../models/TeamAdminRequest");
 const OrganizationAdminRequest = require("../../models/OrganizationAdminRequest");
 const ChangeOrganizationAdminRequest = require("../../models/ChangeOrganizationAdminRequest");
 const Leaderboard = require("../../models/Leaderboard");
+const OrganizationView = require("../../models/OrganizationView");
 //const { model } = require("mongoose");
 //const { events } = require("../../models/Organization");
 
@@ -198,35 +199,58 @@ router.get("/list/:id", (req, res) => {
     });
 });
 
-router.get("/organization/:organizationid", (req, res) => {
-  const organizationid = req.params.organizationid;
-  Organization.findOne({ _id: organizationid })
-    .populate({
-      path: "teams.events.people_attending",
-      model: User,
-      select: "-password",
-    })
-    .populate({
-      path: "teams.events.opponent",
-      model: Organization,
-    })
-    .then((organization) => {
-      organization.teams.sort((a, b) => {
-        const sportA = getSecondWord(a.sport);
-        const sportB = getSecondWord(b.sport);
-        if (sportA < sportB) {
-          return -1;
-        }
-        if (sportA > sportB) {
-          return 1;
-        }
-        return 0;
-      });
-      res.status(200).json(organization);
-    })
-    .catch((err) => {
-      res.status(400).json(err);
+//get a organization and update organizationView
+router.get("/organization/:organizationid", async (req, res) => {
+  try {
+    const organizationId = req.params.organizationid;
+
+    // Check if OrganizationView document exists for the organizationId
+    const existingView = await OrganizationView.findOne({
+      organization: organizationId,
     });
+
+    if (existingView) {
+      // Document already exists, update it
+      existingView.view_time_stamps.push(new Date());
+      await existingView.save();
+    } else {
+      // Document doesn't exist, create a new one
+      await OrganizationView.create({
+        organization: organizationId,
+        view_time_stamps: [new Date()],
+      });
+    }
+
+    // Fetch organization details as before
+    const organization = await Organization.findOne({ _id: organizationId })
+      .populate({
+        path: "teams.events.people_attending",
+        model: User,
+        select: "-password",
+      })
+      .populate({
+        path: "teams.events.opponent",
+        model: Organization,
+      });
+
+    // Sorting logic
+    organization.teams.sort((a, b) => {
+      const sportA = getSecondWord(a.sport);
+      const sportB = getSecondWord(b.sport);
+      if (sportA < sportB) {
+        return -1;
+      }
+      if (sportA > sportB) {
+        return 1;
+      }
+      return 0;
+    });
+
+    res.status(200).json(organization);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(400).json({ error: "Failed to fetch organization details." });
+  }
 });
 
 // Function to extract the second word from a string
@@ -905,6 +929,7 @@ router.put("/update/location/:orgid", (req, res) => {
     });
 });
 
+//Currently not in use
 router.post("/new/leaderboard", (req, res) => {
   const { orgid, endDate, prizeList, teamid } = req.body;
   const { startDate } = req.body;
@@ -944,6 +969,7 @@ router.post("/new/leaderboard", (req, res) => {
     });
 });
 
+//Currently not in use
 router.get("/get/TeamLeaderboard/:orgid/:teamid", (req, res) => {
   const orgid = req.params.orgid;
   const teamid = req.params.teamid;
@@ -969,6 +995,7 @@ router.get("/get/TeamLeaderboard/:orgid/:teamid", (req, res) => {
     });
 });
 
+//Currently not in use
 router.get("/get/leaderboard/:orgid", (req, res) => {
   const orgid = req.params.orgid;
   var mongoose = require("mongoose");
@@ -992,6 +1019,7 @@ router.get("/get/leaderboard/:orgid", (req, res) => {
     });
 });
 
+//Currently not in use
 router.get("/get/leaderboards", (req, res) => {
   const orgIds = req.query.orgIds.split(","); // Split the orgIds string into an array
 
@@ -1022,6 +1050,7 @@ router.get("/get/leaderboards", (req, res) => {
     });
 });
 
+//Currently not in use
 router.delete("/delete/leaderboard/:id", (req, res) => {
   const leaderboardId = req.params.id;
 
@@ -1094,6 +1123,7 @@ const getPoints = (streak) => {
   }
 };
 
+//Currently not in use
 // PUT /api/organizations/update/user/points/organization/:orgid
 router.put("/update/user/points/organization/:orgid", async (req, res) => {
   try {
@@ -1143,6 +1173,7 @@ router.put("/update/user/points/organization/:orgid", async (req, res) => {
       }
     }
 
+    //Currently not in use
     // Find the leaderboard for the given organization
     const leaderboard = await Leaderboard.findOne({
       $and: [{ organization: orgid }, { team: { $exists: false } }],
