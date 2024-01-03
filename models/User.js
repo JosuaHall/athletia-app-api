@@ -1,5 +1,10 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
+const TeamAdminRequest = require("./TeamAdminRequest");
+const OrganizationAdminRequest = require("./OrganizationAdminRequest");
+const Organization = require("./Organization");
+const Leaderboard = require("./Leaderboard");
+const ChangeOrganizationAdminRequest = require("./ChangeOrganizationAdminRequest");
 
 const UserSchema = new Schema({
   name: {
@@ -94,6 +99,66 @@ const UserSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+});
+
+UserSchema.pre("remove", async function (next) {
+  const ObjectId = mongoose.Types.ObjectId;
+  // Cascade delete TeamAdminRequests where the user is the requester or recipient
+  await TeamAdminRequest.deleteMany({
+    $or: [
+      { request_by_user: this._id }, // No need to convert to ObjectId
+      { user_recipient: new ObjectId(this._id) }, // Convert this._id to ObjectId
+    ],
+  });
+
+  // Cascade delete OrganizationAdminRequests where the user is the requester or recipient
+  await OrganizationAdminRequest.deleteMany({
+    request_by_user: this._id,
+  });
+
+  // Cascade delete ChangeOrganizationAdminRequests where the user is the requester or recipient
+  await ChangeOrganizationAdminRequest.deleteMany({
+    requesting_admin: this._id,
+  });
+
+  // Handle removal from organizations_followed if needed
+  // ...
+
+  // Handle ownership and created organizations
+  await Organization.updateMany(
+    { $or: [{ owner: this._id }, { created_by: this._id }] },
+    {
+      $unset: {
+        owner: { $cond: { if: { owner: this._id }, then: "", else: "$owner" } },
+        created_by: {
+          $cond: {
+            if: { created_by: this._id },
+            then: "",
+            else: "$created_by",
+          },
+        },
+      },
+    }
+  );
+
+  // Handle removal from admin array in teams
+  await Organization.updateMany(
+    { "teams.admin": this._id },
+    { $pull: { "teams.$[].admin": this._id } }
+  );
+
+  // Handle removal from people_attending array in events
+  await Organization.updateMany(
+    { "teams.events.people_attending": this._id },
+    { $pull: { "teams.$[].events.$[].people_attending": this._id } }
+  );
+
+  await Leaderboard.updateMany(
+    { "ranking.user": this._id },
+    { $pull: { ranking: { user: ObjectId(this._id) } } }
+  );
+
+  next();
 });
 
 module.exports = User = mongoose.model("user", UserSchema);

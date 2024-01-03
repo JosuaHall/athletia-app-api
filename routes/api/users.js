@@ -5,6 +5,8 @@ const config = require("config");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 require("dotenv").config();
+const auth = require("../../middleware/auth");
+const cloudinary = require("../../cloudinary/config");
 
 //User Model
 const User = require("../../models/User");
@@ -236,11 +238,11 @@ const generateVerificationCode = () => {
 const sendVerificationEmail = (userEmail, verificationCode) => {
   return new Promise(async (resolve, reject) => {
     // Create the verification link with the custom URL scheme
-    const verificationLink = `exp://10.0.0.16:19000/--/api/users/verify?code=${verificationCode}`; //`athletia://10.0.0.16:19000/api/users/verify?code=${verificationCode}`;
+    const verificationLink = `com.josuahall.athletiaapp://api/users/verify?code=${verificationCode}`; ////`exp://10.0.0.16:19000/--/api/users/verify?code=${verificationCode}`; //`athletia://10.0.0.16:19000/api/users/verify?code=${verificationCode}`;
 
     try {
       // Create a test account with Ethereal Email
-      const testAccount = await nodemailer.createTestAccount();
+      //const testAccount = await nodemailer.createTestAccount();
 
       // Create a transporter using the test account SMTP details
       /*
@@ -356,7 +358,7 @@ router.get("/verify", (req, res) => {
 
 const sendPasswordResetEmail = (userEmail, token) => {
   return new Promise(async (resolve, reject) => {
-    const resetLink = `exp://10.0.0.16:19000/--/api/users/reset/password?code=${token}`; //`athletia://10.0.0.16:19000/api/users/verify?code=${verificationCode}`;
+    const resetLink = `com.josuahall.athletiaapp://api/users/reset/password?code=${token}`; //`exp://10.0.0.16:19000/--/api/users/reset/password?code=${token}`; //`athletia://10.0.0.16:19000/api/users/verify?code=${verificationCode}`;
     //console.log(resetLink);
     try {
       /* Create a test account with Ethereal Email
@@ -387,7 +389,9 @@ const sendPasswordResetEmail = (userEmail, token) => {
         subject: "Password Reset - Athletia",
         html: `<p>We received a request to reset your password for your Athletia account. If you did not make this request, you can ignore this email.</p>
         <p>To reset your password, click on the following link:</p>
-        <a href="${resetLink}">Reset Password</a>`,
+        <a href="${resetLink}">Reset Password</a>
+      
+        <p>(If you cannot open the link, try to open this email in your mail app on your phone)</p>`,
       };
 
       // Send the email
@@ -512,7 +516,7 @@ router.get("/validate/password/reset/link", async (req, res) => {
     // Verify the token
     const decoded = jwt.verify(
       token,
-      process.env.jwtSecret /*config.get("jwtSecret")*/
+      process.env.jwtSecret /* config.get("jwtSecret")*/
     );
 
     // Retrieve the user based on the email from the token
@@ -550,7 +554,7 @@ router.post("/reset/password", async (req, res) => {
     // Verify the token and retrieve the email and expiration time from it
     const decoded = jwt.verify(
       passwordResetToken,
-      process.env.jwtSecret /*config.get("jwtSecret")*/
+      process.env.jwtSecret /* config.get("jwtSecret")*/
     );
     const userEmail = decoded.email;
     const tokenExpirationTime = decoded.exp;
@@ -747,6 +751,49 @@ router.put("/updateSocials/:userid", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// DELETE endpoint for deleting a user
+router.delete("/delete/:userId", auth, async (req, res) => {
+  const userId = req.params.userId;
+  const authenticatedUserId = req.user.id;
+  console.log(userId, authenticatedUserId);
+
+  // Check if the authenticated user is the owner of the account
+  if (userId !== authenticatedUserId) {
+    return res.status(403).json({
+      error: "Unauthorized. You cannot delete another user's account.",
+    });
+  }
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Delete the Cloudinary image associated with the user's profileImg
+    if (user.profileImg) {
+      try {
+        const publicId = user.profileImg.match(/\/upload\/v\d+\/(.+)\.\w+/)[1];
+        await cloudinary.uploader.destroy(publicId);
+      } catch (error) {
+        console.error(`Error deleting profileImg: ${error.message}`);
+        // Continue without throwing an error if deletion fails
+      }
+    }
+
+    // Remove the user (triggering the pre-remove hook)
+    await user.remove();
+
+    // Respond with a success message
+    res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
