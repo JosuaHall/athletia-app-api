@@ -277,7 +277,7 @@ const sendVerificationEmail = (userEmail, verificationCode) => {
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: userEmail,
-        subject: "Email Verification Athletia",
+        subject: `${verificationCode} - Email Verification Code - Athletia`,
         html: `<p>Thank you for registering your Athletia account! Please click the following link to verify your email address:</p>
       <a href="${verificationLink}">Verify Email</a>
       <p>Or use the following verification code:</p>
@@ -318,7 +318,7 @@ router.get("/verify", (req, res) => {
         .then((updatedUser) => {
           // Assign and return the JWT token
           jwt.sign(
-            { id: updatedUser.id },
+            { id: updatedUser._id }, //change updatedUser.id to updatedUser._id
             process.env.jwtSecret,
             //config.get("jwtSecret"),
             (err, token) => {
@@ -329,7 +329,7 @@ router.get("/verify", (req, res) => {
               res.json({
                 token,
                 user: {
-                  _id: updatedUser.id,
+                  _id: updatedUser._id, //change updatedUser.id to updatedUser._id
                   name: updatedUser.name,
                   firstName: user.firstName,
                   lastName: user.lastName,
@@ -358,8 +358,8 @@ router.get("/verify", (req, res) => {
 
 const sendPasswordResetEmail = (userEmail, token) => {
   return new Promise(async (resolve, reject) => {
-    const resetLink = `com.josuahall.athletiaapp://api/users/reset/password?code=${token}`; //`exp://10.0.0.16:19000/--/api/users/reset/password?code=${token}`; //`athletia://10.0.0.16:19000/api/users/verify?code=${verificationCode}`;
-    //console.log(resetLink);
+    const resetLink = `com.josuahall.athletiaapp://api/users/reset/password?code=${token}`; //com.josuahall.athletiaapp://api/users/reset/password?code=${token}`exp://10.0.0.16:19000/--/api/users/reset/password?code=${token}`; //`athletia://10.0.0.16:19000/api/users/verify?code=${verificationCode}`;
+
     try {
       /* Create a test account with Ethereal Email
       const testAccount = await nodemailer.createTestAccount();
@@ -386,12 +386,10 @@ const sendPasswordResetEmail = (userEmail, token) => {
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: userEmail,
-        subject: "Password Reset - Athletia",
+        subject: `${token}- Password Reset Code - Athletia`,
         html: `<p>We received a request to reset your password for your Athletia account. If you did not make this request, you can ignore this email.</p>
-        <p>To reset your password, click on the following link:</p>
-        <a href="${resetLink}">Reset Password</a>
-      
-        <p>(If you cannot open the link, try to open this email in your mail app on your phone)</p>`,
+        <p>To reset your password, use the following verification code:</p>
+        <p><b>${token}</b></p>`,
       };
 
       // Send the email
@@ -476,14 +474,17 @@ router.post("/forgot/password", async (req, res) => {
     });
 
     if (existingUser) {
-      // Create a JWT token with the user's email and an expiration time
+      /* Create a JWT token with the user's email and an expiration time
       const token = jwt.sign(
         { email: existingUser.email },
         process.env.jwtSecret,
         //config.get("jwtSecret"),
         { expiresIn: 1200 } // Set the expiration time as per your requirements
-      );
-
+      );*/
+      const token = generateVerificationCode();
+      existingUser.verificationCode = token;
+      // Save the updated user with the new verification code
+      await existingUser.save();
       // Send verification email
       try {
         await sendPasswordResetEmail(existingUser.email, token);
@@ -509,63 +510,58 @@ router.post("/forgot/password", async (req, res) => {
 });
 
 router.get("/validate/password/reset/link", async (req, res) => {
-  const { token } = req.query;
-  //console.log("verify token -> ", token);
+  const { code } = req.query;
+  console.log("verify token -> ", code);
 
-  try {
-    // Verify the token
-    const decoded = jwt.verify(
-      token,
-      process.env.jwtSecret /* config.get("jwtSecret")*/
-    );
-
-    // Retrieve the user based on the email from the token
-    const user = await User.findOne({ email: decoded.email });
-
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
-
-    // Check if the token is expired
-    const now = Date.now() / 1000;
-    if (decoded.exp < now) {
-      return res.status(400).json({ msg: "Token has expired" });
-    }
-
-    // Additional checks and actions for password reset
-    // ...
-
-    // Return a success response with the token
-    return res.json({ msg: "Token validated successfully", token });
-  } catch (err) {
-    // Handle invalid token or other errors
-    console.error(err);
-    return res.status(400).json({ msg: "Invalid token" });
+  if (!code) {
+    return res.status(400).json({ msg: "Verification code not provided" });
   }
+
+  // Find the user with the given verification code
+  User.findOne({ verificationCode: code })
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ msg: "Invalid verification code" });
+      }
+
+      user.verificationCode = ""; // Clear the verification code
+      user
+        .save()
+        .then((updatedUser) => {
+          // Assign and return the JWT token
+          jwt.sign(
+            { id: updatedUser._id },
+            process.env.jwtSecret,
+            //config.get("jwtSecret"),
+            (err, token) => {
+              if (err) {
+                return res.status(500).json({ msg: "Internal Server Error" });
+              }
+
+              return res.json({ msg: "Token validated successfully", token });
+            }
+          );
+        })
+        .catch((err) => {
+          return res.status(500).json({ msg: "Internal Server Error" });
+        });
+    })
+    .catch((err) => {
+      return res.status(500).json({ msg: "Internal Server Error" });
+    });
 });
 
 // @route   POST api/users/reset/password
 // @desc    Reset Password
 // @access  Public
-router.post("/reset/password", async (req, res) => {
-  const { passwordResetToken, password } = req.body;
+router.post("/reset/password", auth, async (req, res) => {
+  const { password } = req.body;
 
   try {
-    // Verify the token and retrieve the email and expiration time from it
-    const decoded = jwt.verify(
-      passwordResetToken,
-      process.env.jwtSecret /* config.get("jwtSecret")*/
-    );
-    const userEmail = decoded.email;
-    const tokenExpirationTime = decoded.exp;
-
-    // Check if the token is expired
-    if (Date.now() >= tokenExpirationTime * 1000) {
-      return res.status(400).json({ msg: "Token has expired" });
-    }
+    const userid = req.user.id;
 
     // Find the user by email
-    const user = await User.findOne({ email: userEmail });
+    const user = await User.findOne({ _id: userid });
 
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
@@ -758,7 +754,6 @@ router.put("/updateSocials/:userid", async (req, res) => {
 router.delete("/delete/:userId", auth, async (req, res) => {
   const userId = req.params.userId;
   const authenticatedUserId = req.user.id;
-  console.log(userId, authenticatedUserId);
 
   // Check if the authenticated user is the owner of the account
   if (userId !== authenticatedUserId) {
