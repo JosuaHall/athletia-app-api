@@ -288,6 +288,8 @@ router.get("/organization/team/:organizationId/:teamId", (req, res) => {
         logo: 1,
         name: 1,
         owner: 1,
+        location: 1,
+        stream_link: 1,
         register_date: 1,
         teams: {
           $filter: {
@@ -345,7 +347,7 @@ router.put("/create/event/:orgid/:teamid", (req, res) => {
   const teamid = req.params.teamid;
   const orgid = req.params.orgid;
 
-  const { date_time, competitor, home_away, link } = req.body;
+  const { date_time, competitor, home_away, link, event_location } = req.body;
 
   var mongoose = require("mongoose");
   var competitorObj = mongoose.Types.ObjectId(competitor);
@@ -359,6 +361,7 @@ router.put("/create/event/:orgid/:teamid", (req, res) => {
           date_time: date_time,
           home_away: home_away,
           link,
+          event_location: event_location,
         },
       },
     },
@@ -918,6 +921,25 @@ router.put("/update/location/:orgid", (req, res) => {
         latitude: latitude,
         address: address,
       },
+    },
+    { new: true }
+  )
+    .then((org) => {
+      res.status(200).json([org]);
+    })
+    .catch((err) => {
+      res.status(400).json(err);
+    });
+});
+
+router.put("/update/stream_link/:orgid", (req, res) => {
+  const { stream_link } = req.body;
+  const orgid = req.params.orgid;
+
+  Organization.findByIdAndUpdate(
+    { _id: orgid },
+    {
+      stream_link,
     },
     { new: true }
   )

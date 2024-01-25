@@ -36,6 +36,10 @@ const OrganizationSchema = new Schema({
     type: LocationSchema,
     required: false,
   },
+  stream_link: {
+    type: String,
+    required: false,
+  },
   status: {
     type: Number,
     required: true,
