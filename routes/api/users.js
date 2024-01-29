@@ -648,12 +648,16 @@ router.get("/get/filtered/users", (req, res) => {
   let search_string = req.query.name;
 
   User.find({
-    name: new RegExp(search_string, "i"),
+    $or: [
+      { name: new RegExp(search_string, "i") },
+      { firstName: new RegExp(search_string, "i") },
+      { lastName: new RegExp(search_string, "i") },
+    ],
   })
     .select("-password")
     .sort({ name: 1 })
-    .then((user) => {
-      res.status(200).json(user);
+    .then((users) => {
+      res.status(200).json(users);
     })
     .catch((err) => {
       res.status(400).json(err);

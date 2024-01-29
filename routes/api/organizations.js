@@ -323,7 +323,12 @@ router.get("/organization/team/:organizationId/:teamId", (req, res) => {
 router.get("/get/all/:searchTerm", (req, res) => {
   const searchTerm = req.params.searchTerm;
 
-  Organization.find({ name: new RegExp(searchTerm, "i"), status: 1 })
+  const sanitizedSearchTerm = searchTerm.replace(/[^a-zA-Z0-9]/g, "\\W*");
+  Organization.find({
+    name: new RegExp(`.*${sanitizedSearchTerm}.*`, "i"),
+    status: 1,
+  })
+
     .populate({
       path: "teams.events.people_attending",
       model: User,
